@@ -1,8 +1,5 @@
 #include <DHT.h>
 
-#define LED1 13
-#define LED2 12
-#define LED3 11
 #define DHTPIN 2
 #define DHTTYPE DHT11
 #define SENSORPOWER 8
@@ -18,16 +15,19 @@ struct airData {
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-  // initialize outputs.
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
+  // initialize LEDs.
+  pinMode(11, OUTPUT);
+  pinMode(12, OUTPUT);
+  pinMode(13, OUTPUT);
+  // initialize 5v for sensors
   pinMode(SENSORPOWER, OUTPUT);
+  // initialize analog input
   pinMode(A0, INPUT);
 
   // initialize sensor
-  Serial.begin(9600);
   dht.begin();
+  // Serial debug output
+  Serial.begin(9600);
 }
 
 int readSoil() {
@@ -59,17 +59,51 @@ void printSoilData(int sd) {
   Serial.println(sd);
 }
 
+void lightLED(int ledstate) {
+  /* LEDs start on PIN 11 and end on 13.
+     We will use ledstate 0 for off, 1 for first LED, 2 for second LED and 3 for third.
+     To control them, we only need to add 10.
+  */
+  ledstate += 10;
+  Serial.print("Ledstate is ");
+  Serial.println(ledstate);
+  for (int i=11; i <= 13; i++) {
+    if (i == ledstate) {
+      Serial.print("Setting to high pin ");
+      Serial.println(i);
+      digitalWrite(i, HIGH);
+    }
+    else {
+      Serial.print("Setting to low pin ");
+      Serial.println(i);
+      digitalWrite(i, LOW);
+    }
+  }
+}
+
 // the loop function runs over and over again forever
 void loop() {
+  // initialize the variables we need
+  static struct airData ad;
+  static int sd;
+  static int ledstate = 0;
+
   // Let's take a reading. Start by turning on sensors and letting them settle
   digitalWrite(SENSORPOWER, HIGH);
   delay(3000);  
   // Read the data
-  struct airData ad = readAirData();
-  int sd = readSoil();
+  ad = readAirData();
+  sd = readSoil();
   // Done reading. Let's turn off our sensors and print the data
   digitalWrite(SENSORPOWER, LOW);
   printAirData(ad);
   printSoilData(sd);
-  delay(5000);
+  if (sd >= 800)
+    lightLED(1);
+  else if (sd >= 500)
+    lightLED(2);
+  else
+    lightLED(3);
+
+  delay(2000);
 }
