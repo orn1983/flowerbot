@@ -61,10 +61,6 @@ void printSoilData(int sd) {
 
 // the loop function runs over and over again forever
 void loop() {
-/*  makeSOS(LED1);
-  makeSOS(LED2);
-  makeSOS(LED3);
-*/
   // Let's take a reading. Start by turning on sensors and letting them settle
   digitalWrite(SENSORPOWER, HIGH);
   delay(3000);  
