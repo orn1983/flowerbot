@@ -4,6 +4,10 @@
 #define DHTTYPE DHT11
 #define SENSORPOWER 8
 #define SOILREAD A0
+#define FLOATREAD 7
+#define RED 11
+#define YELLOW 12
+#define GREEN 13
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -16,23 +20,23 @@ struct airData {
 // the setup function runs once when you press reset or power the board
 void setup() {
   // initialize LEDs.
-  pinMode(11, OUTPUT);
-  pinMode(12, OUTPUT);
-  pinMode(13, OUTPUT);
+  pinMode(RED, OUTPUT);
+  pinMode(YELLOW, OUTPUT);
+  pinMode(GREEN, OUTPUT);
   // initialize 5v for sensors
   pinMode(SENSORPOWER, OUTPUT);
   // initialize analog input
-  pinMode(A0, INPUT);
-
-  // initialize sensor
+  pinMode(SOILREAD, INPUT);
+  // initialize dht sensor
   dht.begin();
+  pinMode(FLOATREAD, INPUT_PULLUP);
   // Serial debug output
   Serial.begin(9600);
 }
 
 int readSoil() {
    // Turn on the soil humidity reader
-  int soil_humidity = analogRead(A0);
+  int soil_humidity = analogRead(SOILREAD);
   return soil_humidity; 
 }
 
@@ -40,7 +44,7 @@ struct airData readAirData() {
   struct airData d;
   d.humidity = dht.readHumidity();
   d.temperature = dht.readTemperature();
-  // effective temperature is provided by computeHeadIndex. false means we want celsius.
+  // Effective temperature is provided by computeHeadIndex. false means we want celsius.
   d.eff_temperature = dht.computeHeatIndex(d.temperature, d.humidity, false);
   return d;
 }
@@ -60,14 +64,8 @@ void printSoilData(int sd) {
 }
 
 void lightLED(int ledstate) {
-  /* LEDs start on PIN 11 and end on 13.
-     We will use ledstate 0 for off, 1 for first LED, 2 for second LED and 3 for third.
-     To control them, we only need to add 10.
-  */
-  ledstate += 10;
-  Serial.print("Ledstate is ");
-  Serial.println(ledstate);
-  for (int i=11; i <= 13; i++) {
+  /* To turn off all the LEDs, we just have to use a value outside of 11-13 */
+  for (int i=RED; i <= GREEN; i++) {
     if (i == ledstate) {
       Serial.print("Setting to high pin ");
       Serial.println(i);
@@ -81,12 +79,16 @@ void lightLED(int ledstate) {
   }
 }
 
-// the loop function runs over and over again forever
+boolean needWater() {
+  return (digitalRead(FLOATREAD) != HIGH);
+}
+
 void loop() {
-  // initialize the variables we need
+  // Initialize the variables we need
   static struct airData ad;
   static int sd;
   static int ledstate = 0;
+  static int floatStatus;
 
   // Let's take a reading. Start by turning on sensors and letting them settle
   digitalWrite(SENSORPOWER, HIGH);
@@ -99,11 +101,15 @@ void loop() {
   printAirData(ad);
   printSoilData(sd);
   if (sd >= 800)
-    lightLED(1);
+    lightLED(RED);
   else if (sd >= 500)
-    lightLED(2);
+    lightLED(YELLOW);
   else
-    lightLED(3);
+    lightLED(GREEN);
 
-  delay(2000);
+  if (needWater())
+    Serial.println("Need water");
+  else
+    Serial.println("Have water"); 
+  delay(600000);
 }
