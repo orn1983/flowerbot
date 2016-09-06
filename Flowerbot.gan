@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="Untitled Gantt Project" company="" webLink="http://" view-date="2016-10-17" view-index="0" gantt-divider-location="353" resource-divider-location="300" version="2.8.1" locale="is_IS">
+<?xml version="1.0" encoding="UTF-8"?><project name="Untitled Gantt Project" company="" webLink="http://" view-date="2016-08-01" view-index="0" gantt-divider-location="353" resource-divider-location="300" version="2.8.1" locale="en_US">
     <description/>
-    <view zooming-state="default:4" id="gantt-chart">
-        <field id="tpd3" name="Name" width="199" order="0"/>
+    <view zooming-state="default:8" id="gantt-chart">
+        <field id="tpd3" name="Name" width="198" order="0"/>
         <field id="tpd4" name="Begin date" width="75" order="1"/>
-        <field id="tpd5" name="End date" width="75" order="2"/>
+        <field id="tpd5" name="End date" width="74" order="2"/>
     </view>
     <view id="resource-table">
-        <field id="0" name="Name" width="210" order="0"/>
-        <field id="1" name="Default role" width="86" order="1"/>
+        <field id="0" name="Name" width="209" order="0"/>
+        <field id="1" name="Default role" width="85" order="1"/>
     </view>
     <!-- -->
     <calendars>
@@ -36,9 +36,9 @@
         <task id="0" name="Hanna borð" color="#8cb6ce" meeting="false" start="2016-09-06" duration="2" complete="0" expand="true"/>
         <task id="4" name="Kaupa aðföng" color="#8cb6ce" meeting="false" start="2016-09-08" duration="2" complete="0" expand="true"/>
         <task id="6" name="Fá alla íhluti til að virka" color="#8cb6ce" meeting="false" start="2016-09-12" duration="9" complete="0" expand="true"/>
-        <task id="7" name="Forrita grunnvirkni" color="#8cb6ce" meeting="false" start="2016-09-15" duration="30" complete="0" expand="true"/>
+        <task id="7" name="Forrita grunnvirkni" color="#8cb6ce" meeting="false" start="2016-09-15" duration="15" complete="0" expand="true"/>
         <task id="10" name="Skil á stöðuskýrslu S1" color="#8cb6ce" meeting="false" start="2016-10-03" duration="3" complete="0" expand="true"/>
-        <task id="13" name="Forritun á notendaviðmóti" color="#8cb6ce" meeting="false" start="2016-10-17" duration="15" complete="0" expand="true"/>
+        <task id="13" name="Forritun á notendaviðmóti" color="#8cb6ce" meeting="false" start="2016-10-06" duration="22" complete="0" expand="true"/>
         <task id="15" name="Hönnun og smíði á kassa" color="#8cb6ce" meeting="false" start="2016-10-25" duration="14" complete="0" expand="true"/>
         <task id="17" name="Hönnun og smíði vatnsíláts" color="#8cb6ce" meeting="false" start="2016-10-25" duration="14" complete="0" expand="true"/>
         <task id="19" name="Skil á stöðuskýrslu S2" color="#8cb6ce" meeting="false" start="2016-10-28" duration="3" complete="0" expand="true"/>
