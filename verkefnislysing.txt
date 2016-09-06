@@ -1,0 +1,7 @@
+1. Stutt lýsing
+Humgyndin er að gera vökvunarróbot sem fylgist með rakastigi í jarðvegi og dælir vatni eftir forstillingum. Róbotinn verður með skjá sem birtir upplýsingar um hitastig umhverfis, rakastig í lofti og jarðvegi og verður stillanlegt með þrýstihnöppum. Sérstaða á að liggja í þægilegu notandaviðmóti á róbotinum svo ekki þarf að tengja tölvu til að breyta stillingum fyrir mismunandi þarfir plantna.
+
+2.
+Við völdum Freeduino fyrir verkefnið. Hann er hentugur því hann er mjög ódýr og einfaldur í notkun, er fljótur að kveikja á sér og með mjög góðan stuðning fyrir allskyns skynjara og mótora og skjái o.s.frv. Einnig er hann mun sparneytnari heldur en eitthvað eins og Raspberry Pi.
+
+Fyrirhugað er að nota þrjá skynjara, einn vatnsdælu, skjá, þrjá þrýstihnappa og einhverjar díóður fyrir róbotinn. Einnig mun þurfa ílát fyrir vatn og svo einhverskonar kassa utan um róbotinn. Skynjararnir eru rakastigsskynjari fyrir jarðveg, lofthita- og loftraskynjari og svo vatnshæðarskynjari. Lofthita- og loftrakaskynjarinn er bara til upplýsingar fyrir notanda. Hugmyndin er að notandi geti valið sér vökvunarprógram, þ.e. hversu oft á dag, eða hversu oft í viku, eða hvort það eigi alltaf að vökva þegar rakastig fer undir X.
