@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><project name="Untitled Gantt Project" company="" webLink="http://" view-date="2016-10-17" view-index="0" gantt-divider-location="353" resource-divider-location="300" version="2.8.1" locale="is_IS">
+    <description/>
+    <view zooming-state="default:4" id="gantt-chart">
+        <field id="tpd3" name="Name" width="199" order="0"/>
+        <field id="tpd4" name="Begin date" width="75" order="1"/>
+        <field id="tpd5" name="End date" width="75" order="2"/>
+    </view>
+    <view id="resource-table">
+        <field id="0" name="Name" width="210" order="0"/>
+        <field id="1" name="Default role" width="86" order="1"/>
+    </view>
+    <!-- -->
+    <calendars>
+        <day-types>
+            <day-type id="0"/>
+            <day-type id="1"/>
+            <default-week id="1" name="default" sun="1" mon="0" tue="0" wed="0" thu="0" fri="0" sat="1"/>
+            <only-show-weekends value="false"/>
+            <overriden-day-types/>
+            <days/>
+        </day-types>
+    </calendars>
+    <tasks empty-milestones="true">
+        <taskproperties>
+            <taskproperty id="tpd0" name="type" type="default" valuetype="icon"/>
+            <taskproperty id="tpd1" name="priority" type="default" valuetype="icon"/>
+            <taskproperty id="tpd2" name="info" type="default" valuetype="icon"/>
+            <taskproperty id="tpd3" name="name" type="default" valuetype="text"/>
+            <taskproperty id="tpd4" name="begindate" type="default" valuetype="date"/>
+            <taskproperty id="tpd5" name="enddate" type="default" valuetype="date"/>
+            <taskproperty id="tpd6" name="duration" type="default" valuetype="int"/>
+            <taskproperty id="tpd7" name="completion" type="default" valuetype="int"/>
+            <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
+            <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
+        </taskproperties>
+        <task id="0" name="Hanna borð" color="#8cb6ce" meeting="false" start="2016-09-06" duration="2" complete="0" expand="true"/>
+        <task id="4" name="Kaupa aðföng" color="#8cb6ce" meeting="false" start="2016-09-08" duration="2" complete="0" expand="true"/>
+        <task id="6" name="Fá alla íhluti til að virka" color="#8cb6ce" meeting="false" start="2016-09-12" duration="9" complete="0" expand="true"/>
+        <task id="7" name="Forrita grunnvirkni" color="#8cb6ce" meeting="false" start="2016-09-15" duration="30" complete="0" expand="true"/>
+        <task id="10" name="Skil á stöðuskýrslu S1" color="#8cb6ce" meeting="false" start="2016-10-03" duration="3" complete="0" expand="true"/>
+        <task id="13" name="Forritun á notendaviðmóti" color="#8cb6ce" meeting="false" start="2016-10-17" duration="15" complete="0" expand="true"/>
+        <task id="15" name="Hönnun og smíði á kassa" color="#8cb6ce" meeting="false" start="2016-10-25" duration="14" complete="0" expand="true"/>
+        <task id="17" name="Hönnun og smíði vatnsíláts" color="#8cb6ce" meeting="false" start="2016-10-25" duration="14" complete="0" expand="true"/>
+        <task id="19" name="Skil á stöðuskýrslu S2" color="#8cb6ce" meeting="false" start="2016-10-28" duration="3" complete="0" expand="true"/>
+        <task id="22" name="Lokafrágangur og prófanir" color="#8cb6ce" meeting="false" start="2016-11-10" duration="4" complete="0" expand="true"/>
+        <task id="29" name="Undirbúningur fyrir kynningu" color="#8cb6ce" meeting="false" start="2016-11-08" duration="6" complete="0" expand="true"/>
+        <task id="32" name="Skil á lokaskýrslu" color="#8cb6ce" meeting="false" start="2016-11-16" duration="5" complete="0" expand="true"/>
+    </tasks>
+    <resources/>
+    <allocations/>
+    <vacations/>
+    <previous/>
+    <roles roleset-name="Default"/>
+</project>
