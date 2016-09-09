@@ -33,7 +33,7 @@
             <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
             <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
         </taskproperties>
-        <task id="0" name="Hanna borð" color="#8cb6ce" meeting="false" start="2016-09-05" duration="8" complete="0" expand="true"/>
+        <task id="0" name="Hanna róbot" color="#8cb6ce" meeting="false" start="2016-09-05" duration="8" complete="0" expand="true"/>
         <task id="4" name="Kaupa aðföng" color="#8cb6ce" meeting="false" start="2016-09-08" duration="2" complete="0" expand="true"/>
         <task id="6" name="Fá alla íhluti til að virka" color="#8cb6ce" meeting="false" start="2016-09-12" duration="9" complete="0" expand="true"/>
         <task id="7" name="Forrita grunnvirkni" color="#8cb6ce" meeting="false" start="2016-09-15" duration="15" complete="0" expand="true"/>

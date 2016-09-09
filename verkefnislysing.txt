@@ -13,6 +13,14 @@ Fyrirhugað er að nota þrjá skynjara, einn vatnsdælu, skjá, þrjá þrýsti
 3. Setja inn kostnaðaráætlun úr excel skjali.
 
 4. Setja inn Gantt rit. Einnig rita upp texta yfir milestones og lýsa ferlinu.
+4.1 Fyrsta verk er að hanna róbotinn gróflega. Það er nauðsynleg forsenda þessa að geta pantað íhlutina. Þegar borð og íhlutir eru komnir tekur við ferli þar sem hver íhlutur fyrir sig er tekinn fyrir og prófaður. Í því ferli munum við skoða handbækur íhluta og vefsíður upp á að tengja það allt saman rétt og tengja saman nauðsynlega íhluti.
+Þegar búið er að tengja saman alla íhluti þarf að forrita grunnvirkni. Við skilgreinum grunnvirkni sem það skref að fá róbotinn til að virka eins og til er ætlast án mannlegrar ívilnunar. Hann á að geta framkvæmt allar mælingar, og vökvað þegar við á. Einnig á hann að kveikja á gátljósi þegar vatnsforði er tómur, og sleppa því að reyna að vökva sé það tilfellið. Á þessu stigi mun skjárinn væntanlega einungis birta upplýsingar, og ekkert viðmót tilbúið.
+Að þessu loknu skilum við stöðuskýrslu S1.
+Næst förum við í forritun notandaviðmóts og virkjum þrýstihnappa. Hér mun væntanlega þurfa að endurforrita aðal lúppuna með það fyrir sjónum að bregðast strax við áreiti frá hnöppum og birta tilsvarandi upplýsingar á skjá. Ætlunin er að í notandaviðmóti sé hægt að stilla vatnsmagn sem dæla skal í hvert sinn sem vökvað er, sem og stilla á eitt af forskilgreindum vökvunarprógrömmum, t.d. hvort vökva skuli að hámarki 1 sinni á dag, 2x á dag, 1x á 2 daga fresti o.s.frv.
+Næsta skref er að hanna kassa utan um róbotinn, og vatnsílát sem í er hægt að festa flotrofa sem segir til um þegar það verður tómt. Ætlunin er að prenta út kassa í þrívíddarprentara sem við getum fengið aðgang að, og mögulega ílátið líka.
+Að þessu skrefi loknu skilum við stöðuskýrslu S2.
+Næst tekur við lokafrágangur og og prófanir, og svo undirbúningur fyrir kynningu.
+Að lokum skilum við lokaskýrslu um verkefnið.
 
 5. Heimildir
 https://create.arduino.cc/projecthub/nekhbet/using-the-yl-39-yl-69-soil-humidity-sensor-with-arduino-968268 2016-08-28
