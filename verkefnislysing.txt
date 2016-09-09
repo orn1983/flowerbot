@@ -14,4 +14,10 @@ Fyrirhugað er að nota þrjá skynjara, einn vatnsdælu, skjá, þrjá þrýsti
 
 4. Setja inn Gantt rit. Einnig rita upp texta yfir milestones og lýsa ferlinu.
 
-5. Setja inn heimildir.
+5. Heimildir
+https://create.arduino.cc/projecthub/nekhbet/using-the-yl-39-yl-69-soil-humidity-sensor-with-arduino-968268 2016-08-28
+https://cdn-shop.adafruit.com/datasheets/Digital+humidity+and+temperature+sensor+AM2302.pdf 2016-08-28
+http://www.instructables.com/id/How-to-use-DHT-22-sensor-Arduino-Tutorial/ 2016-08-28
+https://www.arduino.cc/en/Tutorial/HelloWorld 2016-09-03
+http://www.gammon.com.au/forum/?id=11955 2016-09-06
+http://electronics.stackexchange.com/questions/64575/turning-water-pump-on-off-using-arduino-uno-r3 2016-09-08
