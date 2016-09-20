@@ -1,13 +1,13 @@
 #include <DHT.h>
 
-#define DHTPIN 2
+#define DHTPIN 9
 #define DHTTYPE DHT11
 #define SENSORPOWER 8
 #define SOILREAD A0
-#define FLOATREAD 7
-#define RED 11
-#define YELLOW 12
-#define GREEN 13
+#define FLOATREAD 10 
+#define WATERLED A5
+#define PUMP 13
+#define ACTUALPUMP 11
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -20,11 +20,12 @@ struct airData {
 // the setup function runs once when you press reset or power the board
 void setup() {
   // initialize LEDs.
-  pinMode(RED, OUTPUT);
-  pinMode(YELLOW, OUTPUT);
-  pinMode(GREEN, OUTPUT);
+  pinMode(WATERLED, OUTPUT);
   // initialize 5v for sensors
   pinMode(SENSORPOWER, OUTPUT);
+	// initialize 5v for pump
+  pinMode(PUMP, OUTPUT);
+	pinMode(ACTUALPUMP, OUTPUT);
   // initialize analog input
   pinMode(SOILREAD, INPUT);
   // initialize dht sensor
@@ -35,8 +36,15 @@ void setup() {
 }
 
 int readSoil() {
-   // Turn on the soil humidity reader
-  int soil_humidity = analogRead(SOILREAD);
+  // Turn on the sensor for soil moisture
+	static int soil_humidity;
+  digitalWrite(SENSORPOWER, HIGH);
+	// Let it settle
+	delay(50);  
+	// Take the reading
+  soil_humidity = analogRead(SOILREAD);
+	// Turn it off
+  digitalWrite(SENSORPOWER, LOW);
   return soil_humidity; 
 }
 
@@ -54,8 +62,9 @@ void printAirData(struct airData ad) {
   Serial.print(ad.humidity);
   Serial.print("%\t Air temperature: ");
   Serial.print(ad.temperature);
-  Serial.print("%\t Effective air temperature: ");
-  Serial.println(ad.eff_temperature);
+  Serial.print("°C\t Effective air temperature: ");
+  Serial.print(ad.eff_temperature);
+  Serial.println("°C");
 }
 
 void printSoilData(int sd) {
@@ -63,23 +72,7 @@ void printSoilData(int sd) {
   Serial.println(sd);
 }
 
-void lightLED(int ledstate) {
-  /* To turn off all the LEDs, we just have to use a value outside of 11-13 */
-  for (int i=RED; i <= GREEN; i++) {
-    if (i == ledstate) {
-      Serial.print("Setting to high pin ");
-      Serial.println(i);
-      digitalWrite(i, HIGH);
-    }
-    else {
-      Serial.print("Setting to low pin ");
-      Serial.println(i);
-      digitalWrite(i, LOW);
-    }
-  }
-}
-
-boolean needWater() {
+bool checkWater() {
   return (digitalRead(FLOATREAD) != HIGH);
 }
 
@@ -88,28 +81,36 @@ void loop() {
   static struct airData ad;
   static int sd;
   static int ledstate = 0;
-  static int floatStatus;
+  static int waterEmpty = true;
 
-  // Let's take a reading. Start by turning on sensors and letting them settle
-  digitalWrite(SENSORPOWER, HIGH);
-  delay(3000);  
   // Read the data
   ad = readAirData();
   sd = readSoil();
-  // Done reading. Let's turn off our sensors and print the data
-  digitalWrite(SENSORPOWER, LOW);
+	waterEmpty = checkWater();
+
   printAirData(ad);
   printSoilData(sd);
-  if (sd >= 800)
-    lightLED(RED);
-  else if (sd >= 500)
-    lightLED(YELLOW);
-  else
-    lightLED(GREEN);
 
-  if (needWater())
-    Serial.println("Need water");
+	if (waterEmpty) {
+		digitalWrite(WATERLED, HIGH);
+		// Skrifa á skjá að það vanti vatn
+	} else {
+		digitalWrite(WATERLED, LOW);
+	}
+
+  if (sd >= 800)
+		if (waterEmpty == false) {
+			digitalWrite(PUMP, HIGH);
+//			digitalWrite(ACTUALPUMP, HIGH);
+			delay(1000);
+			digitalWrite(PUMP, LOW);
+//			digitalWrite(ACTUALPUMP, LOW);
+		}
+  else if (sd >= 500)
+		// Skrifa á skjá að jarðvegur sé millirakur
+		1+1;
   else
-    Serial.println("Have water"); 
-  delay(600000);
+		// Skrifa á skjá að jarðvegur sé mjög rakur
+		1+1;
+	delay(1000);
 }
