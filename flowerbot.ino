@@ -40,7 +40,7 @@ int readSoil() {
 	static int soil_humidity;
   digitalWrite(SENSORPOWER, HIGH);
 	// Let it settle
-	delay(50);  
+	delay(500);  
 	// Take the reading
   soil_humidity = analogRead(SOILREAD);
 	// Turn it off
@@ -76,41 +76,71 @@ bool checkWater() {
   return (digitalRead(FLOATREAD) != HIGH);
 }
 
+bool timeToAct(unsigned long lastAction, unsigned long currentTime, unsigned long interval) {
+  Serial.print(currentTime);
+  Serial.print(" - ");
+  Serial.print(lastAction);
+  Serial.print(" >= ");
+  Serial.println(interval);
+	return ((unsigned long)(currentTime - lastAction >= interval));
+}
+
 void loop() {
   // Initialize the variables we need
+  static unsigned long lastWater = 0;
+  static unsigned long lastProbe = 0;
+  static unsigned long currentTime;
+  static unsigned long waterInterval = 60000;
+  static unsigned long probeInterval = 10000;
   static struct airData ad;
   static int sd;
   static int ledstate = 0;
   static int waterEmpty = true;
 
+	// Get current time
+	currentTime = millis();
   // Read the data
-  ad = readAirData();
-  sd = readSoil();
-	waterEmpty = checkWater();
-
-  printAirData(ad);
-  printSoilData(sd);
-
-	if (waterEmpty) {
-		digitalWrite(WATERLED, HIGH);
-		// Skrifa á skjá að það vanti vatn
-	} else {
-		digitalWrite(WATERLED, LOW);
-	}
-
-  if (sd >= 800)
-		if (waterEmpty == false) {
-			digitalWrite(PUMP, HIGH);
-//			digitalWrite(ACTUALPUMP, HIGH);
-			delay(1000);
-			digitalWrite(PUMP, LOW);
-//			digitalWrite(ACTUALPUMP, LOW);
-		}
-  else if (sd >= 500)
-		// Skrifa á skjá að jarðvegur sé millirakur
-		1+1;
-  else
-		// Skrifa á skjá að jarðvegur sé mjög rakur
-		1+1;
-	delay(1000);
+  if (timeToAct(lastProbe, currentTime, probeInterval)) {
+    Serial.println("Taking readings...");
+    ad = readAirData();
+    sd = readSoil();
+    waterEmpty = checkWater();
+    printAirData(ad);
+    printSoilData(sd);
+    lastProbe = millis();
+    if (waterEmpty) {
+      digitalWrite(WATERLED, HIGH);
+      // Skrifa á skjá að það vanti vatn
+    } else {
+      digitalWrite(WATERLED, LOW);
+    }
+    if (timeToAct(lastWater, currentTime, waterInterval)) {
+      Serial.println("Checking if watering is needed...");
+      if (sd >= 800) {
+        // Check water supply again, just in case
+        waterEmpty = checkWater();
+        if (waterEmpty == false) {
+          Serial.println("Need to water. Turning on pump.");
+          digitalWrite(PUMP, HIGH);
+    //			digitalWrite(ACTUALPUMP, HIGH);
+          delay(6000);
+          digitalWrite(PUMP, LOW);
+    //			digitalWrite(ACTUALPUMP, LOW);
+          lastWater = millis();
+        }
+      }
+      else if (sd >= 500) {
+        // Skrifa á skjá að jarðvegur sé millirakur
+        Serial.println("Soil is moist. No need to water.");
+      }
+      else {
+        // Skrifa á skjá að jarðvegur sé mjög rakur
+        Serial.println("Soil is very wet. No need to water.");
+      }
+    }
+    else {
+      Serial.println("I watered too recently. Waiting...");
+    }
+  }
+  delay(1000);
 }
