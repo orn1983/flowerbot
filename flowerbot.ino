@@ -87,11 +87,13 @@ bool timeToAct(unsigned long lastAction, unsigned long currentTime, unsigned lon
 
 void loop() {
   // Initialize the variables we need
-  static unsigned long lastWater = 0;
-  static unsigned long lastProbe = 0;
-  static unsigned long currentTime;
   static unsigned long waterInterval = 60000;
   static unsigned long probeInterval = 10000;
+  // Initialize the lastWater and lastProbe variables in the past to make sure we start out by probing
+  // and watering, if applicable
+  static unsigned long lastWater = 0 - waterInterval;
+  static unsigned long lastProbe = 0 - probeInterval;
+  static unsigned long currentTime;
   static struct airData ad;
   static int sd;
   static int ledstate = 0;
