@@ -36,6 +36,7 @@ void setup() {
 }
 
 int readSoil() {
+  // Returns 0 for dry, 1 for moist and 2 for wet
   // Turn on the sensor for soil moisture
 	static int soil_humidity;
   digitalWrite(SENSORPOWER, HIGH);
@@ -45,7 +46,12 @@ int readSoil() {
   soil_humidity = analogRead(SOILREAD);
 	// Turn it off
   digitalWrite(SENSORPOWER, LOW);
-  return soil_humidity; 
+  if (soil_humidity >= 800)
+    return 0;
+  else if (soil_humidity >= 500)
+    return 1;
+  else
+    return 2;
 }
 
 struct airData readAirData() {
