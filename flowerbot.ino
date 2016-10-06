@@ -6,8 +6,8 @@
 #define SOILREAD A0
 #define FLOATREAD 10 
 #define WATERLED A5
-#define PUMP 13
-#define ACTUALPUMP 11
+#define PUMP 11
+#define MINUTE 60000 // A minute is 60,000 milliseconds
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -25,14 +25,18 @@ void setup() {
   pinMode(SENSORPOWER, OUTPUT);
 	// initialize 5v for pump
   pinMode(PUMP, OUTPUT);
-	pinMode(ACTUALPUMP, OUTPUT);
   // initialize analog input
   pinMode(SOILREAD, INPUT);
   // initialize dht sensor
   dht.begin();
   pinMode(FLOATREAD, INPUT_PULLUP);
+  // Write pump pin to low, just in case
+  digitalWrite(PUMP, LOW);
   // Serial debug output
   Serial.begin(9600);
+	delay(2000);
+  Serial.println("Board initialized");
+	delay(10000);
 }
 
 int readSoil() {
@@ -75,7 +79,12 @@ void printAirData(struct airData ad) {
 
 void printSoilData(int sd) {
   Serial.print("Soil humidity: ");
-  Serial.println(sd);
+  if (sd == 0)
+    Serial.println("DRY");
+  else if (sd == 1)
+    Serial.println("MOIST");
+  else
+    Serial.println("WET");
 }
 
 bool checkWater() {
@@ -83,18 +92,47 @@ bool checkWater() {
 }
 
 bool timeToAct(unsigned long lastAction, unsigned long currentTime, unsigned long interval) {
-  Serial.print(currentTime);
-  Serial.print(" - ");
-  Serial.print(lastAction);
-  Serial.print(" >= ");
-  Serial.println(interval);
-	return ((unsigned long)(currentTime - lastAction >= interval));
+  // Function to calculate whether or not it is time to act based on state of
+  // millisecond timers. We need this because millis() rolls over every ~50 days, and this
+  // handles that safely.
+	return (currentTime - lastAction >= interval);
+}
+
+void pumpWater(unsigned long milliseconds) {
+  // TODO: write busy on LCD
+  bool led_state = false;
+  unsigned long last_mod = 0;
+  unsigned long current_mod;
+  unsigned long startloop = millis();
+  digitalWrite(PUMP, HIGH);
+  Serial.print("Starting pump at ");
+  Serial.print(millis());
+  Serial.print(" until ");
+  Serial.println(startloop+milliseconds);
+  // Blink WATERLED roughly every 100ms until we are done pumping
+  while (millis() - startloop < milliseconds) {
+    Serial.print(millis()-startloop);
+    Serial.print(" < ");
+    Serial.println(milliseconds);
+    current_mod = millis() % 100;
+    if (current_mod < last_mod)
+    {
+      led_state = !led_state;
+      digitalWrite(WATERLED, led_state);
+      Serial.print("Setting water led to ");
+      Serial.println(led_state);
+    }
+    last_mod = current_mod;
+  }
+  Serial.println("Stopping pump");
+  digitalWrite(PUMP, LOW);
+  digitalWrite(WATERLED, LOW);
 }
 
 void loop() {
   // Initialize the variables we need
-  static unsigned long waterInterval = 60000;
-  static unsigned long probeInterval = 10000;
+  static unsigned long waterInterval = 2 * 60 * MINUTE;
+  static unsigned long probeInterval = 5 * MINUTE;
   // Initialize the lastWater and lastProbe variables in the past to make sure we start out by probing
   // and watering, if applicable
   static unsigned long lastWater = 0 - waterInterval;
@@ -118,26 +156,24 @@ void loop() {
     lastProbe = millis();
     if (waterEmpty) {
       digitalWrite(WATERLED, HIGH);
-      // Skrifa á skjá að það vanti vatn
+      Serial.println("Water supply empty");
+      // Write on LCD that water supply is empty
     } else {
       digitalWrite(WATERLED, LOW);
+      Serial.println("Water supply OK");
     }
     if (timeToAct(lastWater, currentTime, waterInterval)) {
-      Serial.println("Checking if watering is needed...");
-      if (sd >= 800) {
+      if (sd == 0) {
+        Serial.println("Need to water. Checking supply");
         // Check water supply again, just in case
         waterEmpty = checkWater();
-        if (waterEmpty == false) {
-          Serial.println("Need to water. Turning on pump.");
-          digitalWrite(PUMP, HIGH);
-    //			digitalWrite(ACTUALPUMP, HIGH);
-          delay(6000);
-          digitalWrite(PUMP, LOW);
-    //			digitalWrite(ACTUALPUMP, LOW);
+        if (!waterEmpty) {
+          Serial.println("Supply OK to water. Turning on pump.");
+          pumpWater(2000);
           lastWater = millis();
         }
       }
-      else if (sd >= 500) {
+      else if (sd == 1) {
         // Skrifa á skjá að jarðvegur sé millirakur
         Serial.println("Soil is moist. No need to water.");
       }
@@ -148,7 +184,10 @@ void loop() {
     }
     else {
       Serial.println("I watered too recently. Waiting...");
+      Serial.print("I watered at ");
+      Serial.print(lastWater);
+      Serial.print(" and it is now ");
+      Serial.println(currentTime);
     }
   }
-  delay(1000);
 }
