@@ -8,6 +8,7 @@
 #define WATERLED A5
 #define PUMP 11
 #define MINUTE 60000 // A minute is 60,000 milliseconds
+#define HOUR 3600000 // An hour is 3,600,000 milliseconds
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -34,15 +35,18 @@ void setup() {
   digitalWrite(PUMP, LOW);
   // Serial debug output
   Serial.begin(9600);
+
+  // Make sure we don't start pumping JUST as the board is plugged in.
 	delay(2000);
   Serial.println("Board initialized");
-	delay(10000);
+	delay(8000);
 }
 
 int readSoil() {
+  // Read soil moisture from the soil sensor.
   // Returns 0 for dry, 1 for moist and 2 for wet
-  // Turn on the sensor for soil moisture
 	static int soil_humidity;
+  // Turn on the sensor for soil moisture
   digitalWrite(SENSORPOWER, HIGH);
 	// Let it settle
 	delay(500);  
@@ -59,6 +63,8 @@ int readSoil() {
 }
 
 struct airData readAirData() {
+	// Read data from air temperature/moisture sensor. Returns an airData struct.
+	// Expects to have access to a globally scoped DHT object
   struct airData d;
   d.humidity = dht.readHumidity();
   d.temperature = dht.readTemperature();
@@ -68,6 +74,8 @@ struct airData readAirData() {
 }
 
 void printAirData(struct airData ad) {
+	// Print all information from air temperature/moisture sensor on Serial.
+	// Needs rewrite after we connect LCD
   Serial.print("Air humidity: ");
   Serial.print(ad.humidity);
   Serial.print("%\t Air temperature: ");
@@ -78,6 +86,8 @@ void printAirData(struct airData ad) {
 }
 
 void printSoilData(int sd) {
+	// Print soil humidity on Serial. Soil data is received by function as an integer
+	// integer values 0 = dry, 1 = moist, 2 = wet
   Serial.print("Soil humidity: ");
   if (sd == 0)
     Serial.println("DRY");
@@ -87,31 +97,45 @@ void printSoilData(int sd) {
     Serial.println("WET");
 }
 
-bool checkWater() {
+bool waterIsEmpty() {
+  // Returns true if float switch is open
   return (digitalRead(FLOATREAD) != HIGH);
 }
 
-bool timeToAct(unsigned long lastAction, unsigned long currentTime, unsigned long interval) {
+bool timeToAct(unsigned long last_action, unsigned long current_time, unsigned long interval) {
   // Function to calculate whether or not it is time to act based on state of
   // millisecond timers. We need this because millis() rolls over every ~50 days, and this
   // handles that safely.
-	return (currentTime - lastAction >= interval);
+  // If any time exceeding interval has passed between last_action and current_time, this function
+  // will return true
+	return (current_time - last_action >= interval);
 }
 
 void pumpWater(unsigned long milliseconds) {
-  // TODO: write busy on LCD
+  // Turn on the water pump for 'milliseconds' milliseconds. Also blink the red LED
+  // while the pump is active, to give some sort of visual confirmation of what is
+  // going on.
+  // TODO: Replace Serial output with printing 'Watering...' on LCD when LCD is connected
+  Serial.print("Starting pump for ");
+  Serial.print(milliseconds);
+  Serial.print(" milliseconds");
+  digitalWrite(PUMP, HIGH);
+  blinkWaterLED(milliseconds);
+  digitalWrite(PUMP, LOW);
+  Serial.println("Stopping pump");
+}
+
+void blinkWaterLED(unsigned long milliseconds) {
+  // Helper function for pumpWater. Blink the red LED for 'milliseconds' milliseconds.
+  // Return when timer expires.
   bool led_state = false;
   unsigned long last_mod = 0;
   unsigned long current_mod;
-  unsigned long startloop = millis();
-  digitalWrite(PUMP, HIGH);
-  Serial.print("Starting pump at ");
-  Serial.print(millis());
-  Serial.print(" until ");
-  Serial.println(startloop+milliseconds);
+  unsigned long loop_start = millis();
   // Blink WATERLED roughly every 100ms until we are done pumping
-  while (millis() - startloop < milliseconds) {
-    Serial.print(millis()-startloop);
+  while (millis() - loop_start < milliseconds) {
+    // Debug output -- will be completely removed
+    Serial.print(millis()-loop_start);
     Serial.print(" < ");
     Serial.println(milliseconds);
     current_mod = millis() % 100;
@@ -124,55 +148,67 @@ void pumpWater(unsigned long milliseconds) {
     }
     last_mod = current_mod;
   }
-  Serial.println("Stopping pump");
-  digitalWrite(PUMP, LOW);
+  // Make sure we turn off the LED before returning
   digitalWrite(WATERLED, LOW);
+}
+
+void notifyEmptyWater(bool state) {
+  // Notify user that the water reservoir is empty
+  // state variable true to notify user, or false to remove notification
+  if (state == true) {
+    digitalWrite(WATERLED, HIGH);
+    Serial.println("Water supply empty");
+    // Write on LCD that water supply is empty
+  } else {
+    digitalWrite(WATERLED, LOW);
+    Serial.println("Water supply OK");
+    // Remove text about low water from LCD
+  }
 }
 
 void loop() {
   // Initialize the variables we need
-  static unsigned long waterInterval = 2 * 60 * MINUTE;
-  static unsigned long probeInterval = 5 * MINUTE;
-  // Initialize the lastWater and lastProbe variables in the past to make sure we start out by probing
-  // and watering, if applicable
-  static unsigned long lastWater = 0 - waterInterval;
-  static unsigned long lastProbe = 0 - probeInterval;
-  static unsigned long currentTime;
-  static struct airData ad;
-  static int sd;
+  static unsigned long watering_interval = 2 * HOUR;
+  static unsigned long probing_interval = 5 * MINUTE;
+  // Initialize the last_watering and last_probing variables in the past to make sure we start out by probing
+  // and watering, if conditions dictate.
+  static unsigned long last_watering = 0 - watering_interval;
+  static unsigned long last_probing = 0 - probing_interval;
+  static unsigned long current_time;
+  static struct airData air_data;
+  static int soil_data;
   static int waterEmpty = true;
 
 	// Get current time
-	currentTime = millis();
+	current_time = millis();
   // Read the data
-  if (timeToAct(lastProbe, currentTime, probeInterval)) {
+  if (timeToAct(last_probing, current_time, probing_interval)) {
     Serial.println("Taking readings...");
-    ad = readAirData();
-    sd = readSoil();
-    waterEmpty = checkWater();
-    printAirData(ad);
-    printSoilData(sd);
-    lastProbe = millis();
+    air_data = readAirData();
+    soil_data = readSoil();
+    waterEmpty = waterIsEmpty();
+    printAirData(air_data);
+    printSoilData(soil_data);
+    last_probing = millis();
     if (waterEmpty) {
-      digitalWrite(WATERLED, HIGH);
-      Serial.println("Water supply empty");
-      // Write on LCD that water supply is empty
+      notifyEmptyWater(true);
     } else {
-      digitalWrite(WATERLED, LOW);
-      Serial.println("Water supply OK");
+      notifyEmptyWater(false);
     }
-    if (timeToAct(lastWater, currentTime, waterInterval)) {
-      if (sd == 0) {
+    if (timeToAct(last_watering, current_time, watering_interval)) {
+      if (soil_data == 0) {
         Serial.println("Need to water. Checking supply");
         // Check water supply again, just in case
-        waterEmpty = checkWater();
+        waterEmpty = waterIsEmpty();
         if (!waterEmpty) {
           Serial.println("Supply OK to water. Turning on pump.");
+          // Turn on pump for 2 seconds. Magic number for base phase only. Will be user configurable.
           pumpWater(2000);
-          lastWater = millis();
+          // Update last watering time.
+          last_watering = millis();
         }
       }
-      else if (sd == 1) {
+      else if (soil_data == 1) {
         // Skrifa á skjá að jarðvegur sé millirakur
         Serial.println("Soil is moist. No need to water.");
       }
@@ -182,11 +218,13 @@ void loop() {
       }
     }
     else {
+      // Debug output -- will be removed. Maybe add time since last watering when
+      // LCD is connected?
       Serial.println("I watered too recently. Waiting...");
       Serial.print("I watered at ");
-      Serial.print(lastWater);
+      Serial.print(last_watering);
       Serial.print(" and it is now ");
-      Serial.println(currentTime);
+      Serial.println(current_time);
     }
   }
 }
