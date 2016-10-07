@@ -140,7 +140,6 @@ void loop() {
   static unsigned long currentTime;
   static struct airData ad;
   static int sd;
-  static int ledstate = 0;
   static int waterEmpty = true;
 
 	// Get current time
