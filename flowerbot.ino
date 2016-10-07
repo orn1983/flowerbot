@@ -24,7 +24,7 @@ void setup() {
   pinMode(WATERLED, OUTPUT);
   // initialize 5v for sensors
   pinMode(SENSORPOWER, OUTPUT);
-	// initialize 5v for pump
+  // initialize 5v for pump
   pinMode(PUMP, OUTPUT);
   // initialize analog input
   pinMode(SOILREAD, INPUT);
@@ -37,22 +37,22 @@ void setup() {
   Serial.begin(9600);
 
   // Make sure we don't start pumping JUST as the board is plugged in.
-	delay(2000);
+  delay(2000);
   Serial.println("Board initialized");
-	delay(8000);
+  delay(8000);
 }
 
 int readSoil() {
   // Read soil moisture from the soil sensor.
   // Returns 0 for dry, 1 for moist and 2 for wet
-	static int soil_humidity;
+  static int soil_humidity;
   // Turn on the sensor for soil moisture
   digitalWrite(SENSORPOWER, HIGH);
-	// Let it settle
-	delay(500);  
-	// Take the reading
+  // Let it settle
+  delay(500);  
+  // Take the reading
   soil_humidity = analogRead(SOILREAD);
-	// Turn it off
+  // Turn it off
   digitalWrite(SENSORPOWER, LOW);
   if (soil_humidity >= 800)
     return 0;
@@ -63,8 +63,8 @@ int readSoil() {
 }
 
 struct airData readAirData() {
-	// Read data from air temperature/moisture sensor. Returns an airData struct.
-	// Expects to have access to a globally scoped DHT object
+  // Read data from air temperature/moisture sensor. Returns an airData struct.
+  // Expects to have access to a globally scoped DHT object
   struct airData d;
   d.humidity = dht.readHumidity();
   d.temperature = dht.readTemperature();
@@ -74,8 +74,8 @@ struct airData readAirData() {
 }
 
 void printAirData(struct airData ad) {
-	// Print all information from air temperature/moisture sensor on Serial.
-	// Needs rewrite after we connect LCD
+  // Print all information from air temperature/moisture sensor on Serial.
+  // Needs rewrite after we connect LCD
   Serial.print("Air humidity: ");
   Serial.print(ad.humidity);
   Serial.print("%\t Air temperature: ");
@@ -86,8 +86,8 @@ void printAirData(struct airData ad) {
 }
 
 void printSoilData(int sd) {
-	// Print soil humidity on Serial. Soil data is received by function as an integer
-	// integer values 0 = dry, 1 = moist, 2 = wet
+  // Print soil humidity on Serial. Soil data is received by function as an integer
+  // integer values 0 = dry, 1 = moist, 2 = wet
   Serial.print("Soil humidity: ");
   if (sd == 0)
     Serial.println("DRY");
@@ -108,7 +108,7 @@ bool timeToAct(unsigned long last_action, unsigned long current_time, unsigned l
   // handles that safely.
   // If any time exceeding interval has passed between last_action and current_time, this function
   // will return true
-	return (current_time - last_action >= interval);
+  return (current_time - last_action >= interval);
 }
 
 void pumpWater(unsigned long milliseconds) {
@@ -139,8 +139,7 @@ void blinkWaterLED(unsigned long milliseconds) {
     Serial.print(" < ");
     Serial.println(milliseconds);
     current_mod = millis() % 100;
-    if (current_mod < last_mod)
-    {
+    if (current_mod < last_mod) {
       led_state = !led_state;
       digitalWrite(WATERLED, led_state);
       Serial.print("Setting water led to ");
@@ -179,8 +178,8 @@ void loop() {
   static int soil_data;
   static int waterEmpty = true;
 
-	// Get current time
-	current_time = millis();
+  // Get current time
+  current_time = millis();
   // Read the data
   if (timeToAct(last_probing, current_time, probing_interval)) {
     Serial.println("Taking readings...");
