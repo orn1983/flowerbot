@@ -208,11 +208,9 @@ void loop() {
         }
       }
       else if (soil_data == 1) {
-        // Skrifa á skjá að jarðvegur sé millirakur
         Serial.println("Soil is moist. No need to water.");
       }
       else {
-        // Skrifa á skjá að jarðvegur sé mjög rakur
         Serial.println("Soil is very wet. No need to water.");
       }
     }
