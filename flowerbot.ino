@@ -191,7 +191,7 @@ void notifyLastWateringTime(unsigned long last_watering_time, unsigned long curr
   lcdPrint(10, 1, 6, delta_seconds_str);
 }
 
-int lcdPrint(int col_start, int row_start, int field_length, char text[]) {
+void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
   lcd.setCursor(col_start, row_start);
   int text_length = strlen(text);
   char formatted_text [field_length+1];
