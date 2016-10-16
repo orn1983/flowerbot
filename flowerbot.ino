@@ -10,6 +10,7 @@
 #define PUMP 11
 #define MINUTE 60000 // A minute is 60,000 milliseconds
 #define HOUR 3600000 // An hour is 3,600,000 milliseconds
+#define DEGREESYMBOL (char)223
 
 DHT dht(DHTPIN, DHTTYPE);
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
@@ -140,16 +141,10 @@ void blinkWaterLED(unsigned long milliseconds) {
   unsigned long loop_start = millis();
   // Blink WATERLED roughly every 100ms until we are done pumping
   while (millis() - loop_start < milliseconds) {
-    // Debug output -- will be completely removed
-//    Serial.print(millis()-loop_start);
-//    Serial.print(" < ");
-//    Serial.println(milliseconds);
     current_mod = millis() % 100;
     if (current_mod < last_mod) {
       led_state = !led_state;
       digitalWrite(WATERLED, led_state);
-//      Serial.print("Setting water led to ");
-//      Serial.println(led_state);
     }
     last_mod = current_mod;
   }
@@ -163,20 +158,25 @@ void notifyEmptyWater(bool state) {
   char message[9];
   if (state == true) {
     digitalWrite(WATERLED, HIGH);
-    Serial.println("Water supply empty");
     strncpy(message, "NO WATER", 8);
     // Write on LCD that water supply is empty
-  } else {
+  }
+  else {
     digitalWrite(WATERLED, LOW);
-    Serial.println("Water supply OK");
     strncpy(message, "Water OK", 8);
     // Remove text about low water from LCD
   }
   lcdPrint(0, 0, 8, message);
 }
 
+void notifyAirState(struct airData ad) {
+  char message[9];
+  snprintf(message, 9, "%2d%% %2d%cC", (int)ad.humidity, (int)ad.temperature, DEGREESYMBOL);
+  lcdPrint(0, 1, 8, message);
+}
+
 void notifySoilState(char state[]) {
-  lcdPrint(0, 1, 8, state);
+  lcdPrint(11, 0, 4, state);
 }
 
 void notifyWaterState(char state[]) {
@@ -186,9 +186,22 @@ void notifyWaterState(char state[]) {
 void notifyLastWateringTime(unsigned long last_watering_time, unsigned long current_time) {
   unsigned long delta_seconds = (current_time - last_watering_time) / 1000;
   char delta_seconds_str[7];
-  snprintf(delta_seconds_str, 6, "%lu", delta_seconds);
-  Serial.println(delta_seconds_str);
-  lcdPrint(10, 1, 6, delta_seconds_str);
+  snprintf(delta_seconds_str, 7, "%lu", delta_seconds);
+
+  char time[8];
+  char *timeptr = time;
+  secondsToHHMM(delta_seconds, timeptr);
+  lcdPrint(11, 1, 7, time);
+}
+
+void secondsToHHMM(unsigned long seconds, char* time) {
+  int minutes = ((int)seconds / 60) % 60;
+  int hours = ((int)seconds / 3600) % 24;
+  int days = ((int)seconds / 86400);
+  if (days <= 0)
+    snprintf(time, 6, "%02d:%02d", hours, minutes);
+  else 
+    snprintf(time, 8, "%01d:%02d:%02d", days, hours, minutes);
 }
 
 void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
@@ -196,6 +209,7 @@ void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
   int text_length = strlen(text);
   char formatted_text [field_length+1];
   strncpy(formatted_text, text, field_length);
+  // Fill the remaining slots with spaces
   for (int i = text_length; i <= field_length; i++) {
     formatted_text[i] = ' '; 
   }
@@ -209,8 +223,8 @@ void loop() {
   static unsigned long watering_interval = 30000;
 //  static unsigned long probing_interval = 5 * MINUTE;
   static unsigned long probing_interval = 4000;
-  // Initialize the last_watering and last_probing variables in the past to make sure we start out by probing
-  // and watering, if conditions dictate.
+  // Initialize the last_watering and last_probing variables in the past to make sure we 
+  // start out by probing and watering, if conditions dictate.
   static unsigned long last_watering = 0 - watering_interval;
   static unsigned long last_probing = 0 - probing_interval;
   static unsigned long current_time;
@@ -226,17 +240,19 @@ void loop() {
     air_data = readAirData();
     soil_data = readSoil();
     waterEmpty = waterIsEmpty();
+    notifyAirState(air_data);
     printAirData(air_data);
     printSoilData(soil_data);
     last_probing = millis();
     if (waterEmpty) {
       notifyEmptyWater(true);
-    } else {
+    }
+    else {
       notifyEmptyWater(false);
     }
     if (timeToAct(last_watering, current_time, watering_interval)) {
       if (soil_data == 0) {
-        notifySoilState("Soil dry");
+        notifySoilState("Dry");
         Serial.println("Need to water. Checking supply");
         // Check water supply again, just in case
         waterEmpty = waterIsEmpty();
@@ -249,11 +265,11 @@ void loop() {
         }
       }
       else if (soil_data == 1) {
-        notifySoilState("Soil moist");
+        notifySoilState("Damp");
         Serial.println("Soil is moist. No need to water.");
       }
       else {
-        notifySoilState("Soil wet");
+        notifySoilState("Wet");
         Serial.println("Soil is very wet. No need to water.");
       }
     }
