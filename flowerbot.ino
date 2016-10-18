@@ -198,8 +198,7 @@ void notifyWaterState(char state[]) {
 void notifyLastWateringTime(unsigned long last_watering_time, unsigned long current_time) {
   unsigned long delta_seconds = (current_time - last_watering_time) / 1000;
   char time[8];
-  char *timeptr = time;
-  secondsToHHMM(delta_seconds, timeptr);
+  secondsToHHMM(delta_seconds, time);
   // Display the time in the appropriate LCD position, offset from the right (pos. 16)
   lcdPrint(16-(strlen(time)), 1, 7, time);
 }
