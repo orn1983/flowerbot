@@ -197,23 +197,21 @@ void notifyWaterState(char state[]) {
 
 void notifyLastWateringTime(unsigned long last_watering_time, unsigned long current_time) {
   unsigned long delta_seconds = (current_time - last_watering_time) / 1000;
-  char delta_seconds_str[7];
-  snprintf(delta_seconds_str, 7, "%lu", delta_seconds);
-
   char time[8];
   char *timeptr = time;
   secondsToHHMM(delta_seconds, timeptr);
-  lcdPrint(11, 1, 7, time);
+  // Display the time in the appropriate LCD position, offset from the right (pos. 16)
+  lcdPrint(16-(strlen(time)), 1, 7, time);
 }
 
 void secondsToHHMM(unsigned long seconds, char* time) {
-  int minutes = ((int)seconds / 60) % 60;
-  int hours = ((int)seconds / 3600) % 24;
-  int days = ((int)seconds / 86400);
+  int minutes = (seconds / 60) % 60;
+  int hours = (seconds / 3600) % 24;
+  int days = (seconds / 86400);
   if (days <= 0)
     snprintf(time, 6, "%02d:%02d", hours, minutes);
   else 
-    snprintf(time, 8, "%01d:%02d:%02d", days, hours, minutes);
+    snprintf(time, 8, "%d:%02d:%02d", days, hours, minutes);
 }
 
 void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
@@ -232,23 +230,20 @@ void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
 
 void loop() {
   // Initialize the variables we need
-  static unsigned long watering_interval = 30000;
+  static unsigned long watering_interval = 60000;
   //static unsigned long probing_interval = 5 * MINUTE;
   static unsigned long probing_interval = 10000;
   // Initialize the last_watering and last_probing variables in the past to make sure we 
   // start out by probing and watering, if conditions dictate.
   static unsigned long last_watering = 0 - watering_interval;
   static unsigned long last_probing = 0 - probing_interval;
-  static unsigned long current_time;
   static char soil_state[5];
   static struct airData air_data;
   static int soil_data;
   static int waterEmpty = true;
 
-  // Get current time
-  current_time = millis();
   // Read the data
-  if (timeToAct(last_probing, current_time, probing_interval)) {
+  if (timeToAct(last_probing, millis(), probing_interval)) {
     Serial.println("Taking readings...");
     notifyBusy("Reading sensors");
     air_data = readAirData();
@@ -258,7 +253,7 @@ void loop() {
     printAirData(air_data);
     printSoilData(soil_data);
     last_probing = millis();
-    if (timeToAct(last_watering, current_time, watering_interval)) {
+    if (timeToAct(last_watering, millis(), watering_interval)) {
       if (soil_data == 0) {
         strcpy(soil_state, "Dry");
         Serial.println("Need to water. Checking supply");
@@ -288,11 +283,11 @@ void loop() {
       Serial.print("I watered at ");
       Serial.print(last_watering);
       Serial.print(" and it is now ");
-      Serial.println(current_time);
+      Serial.println(millis());
     }
+    notifyEmptyWater(waterEmpty);
+    notifyAirState(air_data);
+    notifySoilState(soil_state);
   }
-  notifyEmptyWater(waterEmpty);
-  notifyAirState(air_data);
-  notifyLastWateringTime(last_watering, current_time);
-  notifySoilState(soil_state);
+  notifyLastWateringTime(last_watering, millis());
 }
