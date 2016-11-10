@@ -203,18 +203,18 @@ void notifyEmptyWater(bool state) {
   // state variable true to notify user, or false to remove notification
   char message[9];
   if (state == true) {
-    waterled_on = true;
-    digitalWrite(WATERLED, HIGH);
+    turnWaterLedOn();
     turnBacklightOn();
     setBacklightExpiry();
     strncpy(message, "NO WATER", 9);
     // Write on LCD that water supply is empty
+    // Length of field is 11 because that's the size of the field that we
+    // are overwriting
     lcdPrint(0, 0, 11, message);
   }
   else if (waterled_on)
   {
-    digitalWrite(WATERLED, LOW);
-    waterled_on = false;
+    turnWaterLedOff();
     setBacklightExpiry();
     notifySettings();
   }
@@ -282,6 +282,17 @@ void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
 bool backlightExpired() {
   return (timeToAct(backlight_expiry, BACKLIGHT_TIMEOUT));
 }
+
+void turnWaterLedOn() {
+  digitalWrite(WATERLED, HIGH);
+  waterled_on = true;
+}
+
+void turnWaterLedOff() {
+  digitalWrite(WATERLED, LOW);
+  waterled_on = false;
+}
+
 
 void turnBacklightOn() {
   digitalWrite(BACKLIGHT, HIGH);
