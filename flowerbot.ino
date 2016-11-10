@@ -29,9 +29,9 @@ struct airData {
 };
 
 struct buttonData {
-	bool plus;
-	bool minus;
-	bool mode;
+  bool plus;
+  bool minus;
+  bool mode;
 };
 
 // We use a global variable to represent the backlight for quicker tests
@@ -48,17 +48,17 @@ int volume = 1;
 void setup() {
   // initialize LEDs.
   pinMode(WATERLED, OUTPUT);
-	pinMode(BACKLIGHT, OUTPUT);
+  pinMode(BACKLIGHT, OUTPUT);
   // initialize 5v for sensors
   pinMode(SENSORPOWER, OUTPUT);
   // initialize 5v for pump
   pinMode(PUMP, OUTPUT);
   // initialize analog input
   pinMode(SOILREAD, INPUT);
-	// Initialize button pins
-	pinMode(PLUSBTN, INPUT);
-	pinMode(MINUSBTN, INPUT);
-	pinMode(MODEBTN, INPUT);
+  // Initialize button pins
+  pinMode(PLUSBTN, INPUT);
+  pinMode(MINUSBTN, INPUT);
+  pinMode(MODEBTN, INPUT);
   // initialize dht sensor
   dht.begin();
   pinMode(FLOATREAD, INPUT_PULLUP);
@@ -67,8 +67,8 @@ void setup() {
   // Serial debug output
   Serial.begin(9600);
 
-	// Print bootup message
-	turnBacklightOn();
+  // Print bootup message
+  turnBacklightOn();
   lcd.begin(16,2);
   lcd.print("Flowerbot v0.1");
 
@@ -77,7 +77,7 @@ void setup() {
   lcd.clear();
   Serial.println("Board initialized");
 //  delay(8000);
-	setBacklightExpiry();
+  setBacklightExpiry();
 }
 
 int readSoil() {
@@ -114,11 +114,11 @@ struct airData readAirData() {
 }
 
 struct buttonData readButtonData() {
-	struct buttonData buttons;
-	buttons.plus = digitalRead(PLUSBTN);
-	buttons.minus = digitalRead(MINUSBTN);
-	buttons.mode = digitalRead(MODEBTN);
-	return buttons;
+  struct buttonData buttons;
+  buttons.plus = digitalRead(PLUSBTN);
+  buttons.minus = digitalRead(MINUSBTN);
+  buttons.mode = digitalRead(MODEBTN);
+  return buttons;
 }
 
 void printAirData(struct airData ad) {
@@ -164,7 +164,7 @@ void pumpWater(unsigned long milliseconds) {
   // while the pump is active, to give some sort of visual confirmation of what is
   // going on.
   notifyBusy("Watering...");
-	turnBacklightOn();
+  turnBacklightOn();
   // Give user time to abort!
   delay(2000);
   Serial.print("Starting pump for ");
@@ -175,7 +175,7 @@ void pumpWater(unsigned long milliseconds) {
   digitalWrite(PUMP, LOW);
   Serial.println("Stopping pump");
   clearBusy();
-	setBacklightExpiry();
+  setBacklightExpiry();
 }
 
 void blinkWaterLED(unsigned long milliseconds) {
@@ -203,21 +203,21 @@ void notifyEmptyWater(bool state) {
   // state variable true to notify user, or false to remove notification
   char message[9];
   if (state == true) {
-		waterled_on = true;
+    waterled_on = true;
     digitalWrite(WATERLED, HIGH);
-		turnBacklightOn();
+    turnBacklightOn();
     setBacklightExpiry();
     strncpy(message, "NO WATER", 9);
     // Write on LCD that water supply is empty
-		lcdPrint(0, 0, 11, message);
+    lcdPrint(0, 0, 11, message);
   }
-	else if (waterled_on)
-	{
+  else if (waterled_on)
+  {
     digitalWrite(WATERLED, LOW);
-		waterled_on = false;
+    waterled_on = false;
     setBacklightExpiry();
-		notifySettings();
-	}
+    notifySettings();
+  }
 }
 
 void notifyAirState(struct airData ad) {
@@ -238,9 +238,9 @@ void clearBusy() {
 }
 
 void notifySettings() {
-	char settings[12];
-	snprintf(settings, 12, "Mode %d %2d L", running_mode + 1, volume);
-	lcdPrint(0, 0, 11, settings);
+  char settings[12];
+  snprintf(settings, 12, "Mode %d %2d L", running_mode + 1, volume);
+  lcdPrint(0, 0, 11, settings);
 }
 
 void notifySoilState(char state[]) {
@@ -280,53 +280,53 @@ void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
 }
 
 bool backlightExpired() {
-	return (timeToAct(backlight_expiry, BACKLIGHT_TIMEOUT));
+  return (timeToAct(backlight_expiry, BACKLIGHT_TIMEOUT));
 }
 
 void turnBacklightOn() {
-	digitalWrite(BACKLIGHT, HIGH);
-	backlight_on = true;
+  digitalWrite(BACKLIGHT, HIGH);
+  backlight_on = true;
 }
 
 void turnBacklightOff() {
-	digitalWrite(BACKLIGHT, LOW);
-	backlight_on = false;
+  digitalWrite(BACKLIGHT, LOW);
+  backlight_on = false;
 }
 
 void setBacklightExpiry() {
-	backlight_expiry = millis();
+  backlight_expiry = millis();
 }
 
 void enterConfigureMode() {
-	unsigned long last_button_read = millis();
-	struct buttonData buttons;
-	int configuration_timeout = 15 * SECOND;
-	unsigned long configuration_expiry = configuration_timeout + millis();
+  unsigned long last_button_read = millis();
+  struct buttonData buttons;
+  int configuration_timeout = 15 * SECOND;
+  unsigned long configuration_expiry = configuration_timeout + millis();
 
-	while (millis() <= configuration_expiry) {
-		if (timeToAct(last_button_read, BTNDELAY)) {
-			buttons = readButtonData();
-			if (buttons.mode || buttons.minus || buttons.plus) {
-				last_button_read = millis();
-				configuration_expiry = last_button_read + configuration_timeout;
+  while (millis() <= configuration_expiry) {
+    if (timeToAct(last_button_read, BTNDELAY)) {
+      buttons = readButtonData();
+      if (buttons.mode || buttons.minus || buttons.plus) {
+        last_button_read = millis();
+        configuration_expiry = last_button_read + configuration_timeout;
 
-				if (buttons.mode) {
-					running_mode += 1;
-					running_mode = running_mode % 5;
-				}
-				else if (buttons.minus) {
-					if (volume != 1)
-						volume -= 1;
-				}
-				else {
-					if (volume != 20)
-						volume += 1;
-				}
-				// Update LCD
-				notifySettings();
-			}
-		}
-	}
+        if (buttons.mode) {
+          running_mode += 1;
+          running_mode = running_mode % 5;
+        }
+        else if (buttons.minus) {
+          if (volume != 1)
+            volume -= 1;
+        }
+        else {
+          if (volume != 20)
+            volume += 1;
+        }
+        // Update LCD
+        notifySettings();
+      }
+    }
+  }
 }
 
 void loop() {
@@ -340,7 +340,7 @@ void loop() {
   static unsigned long last_probing = 0 - probing_interval;
   static char soil_state[5];
   static struct airData air_data;
-	static struct buttonData buttons;
+  static struct buttonData buttons;
   static int soil_data;
   static int waterEmpty = true;
 
@@ -389,26 +389,26 @@ void loop() {
     }
     notifyAirState(air_data);
     notifySoilState(soil_state);
-		notifySettings();
+    notifySettings();
     notifyEmptyWater(waterEmpty);
   }
-	
-	buttons = readButtonData();
-	if (buttons.mode || buttons.minus || buttons.plus) {
-		turnBacklightOn();
-		if (buttons.mode)
-			enterConfigureMode();
-		setBacklightExpiry();
-	}
+  
+  buttons = readButtonData();
+  if (buttons.mode || buttons.minus || buttons.plus) {
+    turnBacklightOn();
+    if (buttons.mode)
+      enterConfigureMode();
+    setBacklightExpiry();
+  }
 
-	if (timeToAct(last_water_timer_notify, 5*SECOND)) {
-		Serial.println("Time to notify watering time!");
-		notifyLastWateringTime(last_watering, millis());
-		last_water_timer_notify = millis();
+  if (timeToAct(last_water_timer_notify, 5*SECOND)) {
+    Serial.println("Time to notify watering time!");
+    notifyLastWateringTime(last_watering, millis());
+    last_water_timer_notify = millis();
     notifyEmptyWater(waterIsEmpty());
-	}
+  }
 
-	if (backlight_on && backlightExpired()) {
-		turnBacklightOff();
-	}
+  if (backlight_on && backlightExpired()) {
+    turnBacklightOff();
+  }
 }
