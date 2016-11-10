@@ -154,8 +154,7 @@ bool timeToAct(unsigned long last_action, unsigned long interval) {
   // Function to calculate whether or not it is time to act based on state of
   // millisecond timers. We need this because millis() rolls over every ~50 days, and this
   // handles that safely.
-  // If any time exceeding interval has passed between last_action and current_time, this function
-  // will return true
+  // Returns true if last_action+interval is in the past 
   return (millis() - last_action >= interval);
 }
 
