@@ -34,6 +34,12 @@ struct buttonData {
   bool mode;
 };
 
+struct modeDefinition {
+  float pot_size;
+  int humidity;
+  int dry_hours;
+};
+
 // We use a global variable to represent the backlight for quicker tests
 bool waterled_on = false;
 bool backlight_on = true;
@@ -41,7 +47,14 @@ unsigned long backlight_expiry;
 
 // Flowerbot settings
 int running_mode = 0;
-int volume = 1;
+
+struct modeDefinition mode_definitions[5] = {
+  { 1, 1, 1 },
+  { 1, 2, 10 },
+  { 1, 2, 3 },
+  { 1, 0, 3 },
+  { 1, 1, 5 },
+};
 
 // 3.36 from 5.085
 // the setup function runs once when you press reset or power the board
@@ -78,6 +91,40 @@ void setup() {
   Serial.println("Board initialized");
 //  delay(8000);
   setBacklightExpiry();
+}
+
+char *soilDataToString(int soil_data) {
+  if (soil_data == 0)
+    return "Dry";
+  else if (soil_data == 1)
+    return "Damp";
+  else if (soil_data == 2)
+    return "Wet";
+  else
+    return "????";
+}
+
+void updatePotSize(int change) {
+  // Update the pot size for the current setting. 1 = increase, -1 = decrease
+
+  // local variable for convenience
+  float pot_size = mode_definitions[running_mode].pot_size;
+  float delta;
+  if (pot_size < 2.0)
+    delta = change * 0.1;
+  else if (pot_size == 2.0) {
+    Serial.println("Changing from 2.0");
+    if (change == -1)
+      delta = -0.1;
+    else
+      delta = 0.5;
+  }
+  else if (pot_size < 5)
+    delta = change * 0.5;
+  else
+    delta = change * 1;
+
+  mode_definitions[running_mode].pot_size = constrain(pot_size + delta, 0.1, 20);
 }
 
 int readSoil() {
@@ -215,7 +262,7 @@ void notifyEmptyWater(bool state) {
   {
     turnWaterLedOff();
     setBacklightExpiry();
-    notifySettings();
+    notifySettings(false);
   }
 }
 
@@ -236,10 +283,34 @@ void clearBusy() {
   lcd.clear();
 }
 
-void notifySettings() {
+void notifySettings(bool configuration_active) {
   char settings[12];
-  snprintf(settings, 12, "Mode %d %2d L", running_mode + 1, volume);
+  // Arduino's snprintf does not support float formatting, so we
+  // need to split the number up into two parts
+  float pot_size = mode_definitions[running_mode].pot_size;
+  int left_side = (int)pot_size;
+  // We know that 0.1 is the maximum degree of accuracy, so we just
+  // multiply by 10
+  int right_side = (pot_size - left_side) * 10;
+
+  if (right_side == 0)
+    snprintf(settings, 12, "Mode %d %2d L", running_mode + 1, left_side);
+  else
+    snprintf(settings, 12, "Mode %d %d.%dL", running_mode + 1, left_side, right_side);
+
   lcdPrint(0, 0, 11, settings);
+
+  if (configuration_active) {
+    char description[17];
+    char humidity[5];
+    int dry_hours = mode_definitions[running_mode].dry_hours;
+    // Copy string to variable in order to make it lowercase
+    strncpy(humidity, soilDataToString(mode_definitions[running_mode].humidity), 5);
+    humidity[0] = tolower(humidity[0]);
+    snprintf(description, 17, "%dh after %s", dry_hours, humidity);
+    lcdPrint(0, 1, 16, description);
+    free(humidity);
+  }
 }
 
 void notifySoilState(char state[]) {
@@ -292,7 +363,6 @@ void turnWaterLedOff() {
   waterled_on = false;
 }
 
-
 void turnBacklightOn() {
   digitalWrite(BACKLIGHT, HIGH);
   backlight_on = true;
@@ -312,6 +382,7 @@ void enterConfigureMode() {
   struct buttonData buttons;
   int configuration_timeout = 15 * SECOND;
   unsigned long configuration_expiry = configuration_timeout + millis();
+  notifySettings(true);
 
   while (millis() <= configuration_expiry) {
     if (timeToAct(last_button_read, BTNDELAY)) {
@@ -325,15 +396,17 @@ void enterConfigureMode() {
           running_mode = running_mode % 5;
         }
         else if (buttons.minus) {
-          if (volume != 1)
-            volume -= 1;
+          updatePotSize(-1);
+//          if (mode_definitions[running_mode].pot_size != 1)
+//            mode_definitions[running_mode].pot_size -= 1;
         }
         else {
-          if (volume != 20)
-            volume += 1;
+          updatePotSize(1);
+//          if (mode_definitions[running_mode].pot_size != 20)
+//            mode_definitions[running_mode].pot_size += 1;
         }
         // Update LCD
-        notifySettings();
+        notifySettings(true);
       }
     }
   }
@@ -346,7 +419,8 @@ void loop() {
   // Initialize the last_watering and last_probing variables in the past to make sure we 
   // start out by probing and watering, if conditions dictate.
   static unsigned long last_watering = 0 - watering_interval;
-  static unsigned long last_water_timer_notify = 0 - MINUTE;
+  static unsigned long last_timer_notify = 0 - SECOND;
+  static unsigned long last_waterlevel_notify = 0 - (10 * SECOND);
   static unsigned long last_probing = 0 - probing_interval;
   static char soil_state[5];
   static struct airData air_data;
@@ -367,7 +441,6 @@ void loop() {
     printSoilData(soil_data);
     if (timeToAct(last_watering, watering_interval)) {
       if (soil_data == 0) {
-        strcpy(soil_state, "Dry");
         Serial.println("Need to water. Checking supply");
         // Check water supply again, just in case
         waterEmpty = waterIsEmpty();
@@ -380,13 +453,12 @@ void loop() {
         }
       }
       else if (soil_data == 1) {
-        strcpy(soil_state, "Damp");
         Serial.println("Soil is damp. No need to water.");
       }
       else {
-        strcpy(soil_state, "Wet");
         Serial.println("Soil is very wet. No need to water.");
       }
+      strncpy(soil_state, soilDataToString(soil_data), 5);
     }
     else {
       // Debug output -- will be removed. Maybe add time since last watering when
@@ -399,23 +471,32 @@ void loop() {
     }
     notifyAirState(air_data);
     notifySoilState(soil_state);
-    notifySettings();
+    notifySettings(false);
     notifyEmptyWater(waterEmpty);
   }
   
   buttons = readButtonData();
   if (buttons.mode || buttons.minus || buttons.plus) {
     turnBacklightOn();
-    if (buttons.mode)
+    if (buttons.mode) {
       enterConfigureMode();
+      clearBusy();
+      notifySettings(false);
+      notifyLastWateringTime(last_watering, millis());
+      notifyAirState(air_data);
+      notifySoilState(soil_state);
+    }
     setBacklightExpiry();
   }
 
-  if (timeToAct(last_water_timer_notify, 5*SECOND)) {
-    Serial.println("Time to notify watering time!");
+  if (timeToAct(last_timer_notify, SECOND)) {
     notifyLastWateringTime(last_watering, millis());
-    last_water_timer_notify = millis();
+    last_timer_notify = millis();
+  }
+
+  if (timeToAct(last_waterlevel_notify, 5*SECOND)) {
     notifyEmptyWater(waterIsEmpty());
+    last_waterlevel_notify = millis();
   }
 
   if (backlight_on && backlightExpired()) {
