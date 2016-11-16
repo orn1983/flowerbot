@@ -397,13 +397,9 @@ void enterConfigureMode() {
         }
         else if (buttons.minus) {
           updatePotSize(-1);
-//          if (mode_definitions[running_mode].pot_size != 1)
-//            mode_definitions[running_mode].pot_size -= 1;
         }
         else {
           updatePotSize(1);
-//          if (mode_definitions[running_mode].pot_size != 20)
-//            mode_definitions[running_mode].pot_size += 1;
         }
         // Update LCD
         notifySettings(true);
