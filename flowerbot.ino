@@ -1,5 +1,6 @@
 #include <DHT.h>
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 
 #define DHTPIN 9
 #define DHTTYPE DHT11
@@ -18,6 +19,8 @@
 #define BTNDELAY 300
 #define DEGREESYMBOL (char)223
 #define BACKLIGHT_TIMEOUT 10000
+#define RUNNING_MODE_ADDR 0
+#define MODE_SETTINGS_ADDR 2
 
 DHT dht(DHTPIN, DHTTYPE);
 LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
@@ -48,7 +51,7 @@ unsigned long backlight_expiry;
 // Flowerbot settings
 int running_mode = 0;
 
-struct modeDefinition mode_definitions[5] = {
+struct modeDefinition mode_settings[5] = {
   { 1, 1, 1 },
   { 1, 2, 10 },
   { 1, 2, 3 },
@@ -91,6 +94,9 @@ void setup() {
   Serial.println("Board initialized");
 //  delay(8000);
   setBacklightExpiry();
+  // Load user settings from EEPROM
+  EEPROM.get(RUNNING_MODE_ADDR, running_mode);
+  EEPROM.get(MODE_SETTINGS_ADDR, mode_settings);
 }
 
 char *soilDataToString(int soil_data) {
@@ -107,7 +113,7 @@ char *soilDataToString(int soil_data) {
 void updatePotSize(int change) {
   // Update the pot size for the current setting. 1 = increase, -1 = decrease
 
-  float *pot_size = &(mode_definitions[running_mode].pot_size);
+  float *pot_size = &(mode_settings[running_mode].pot_size);
   float delta;
   if (*pot_size < 2.0)
     delta = change * 0.1;
@@ -286,7 +292,7 @@ void notifySettings(bool configuration_active) {
   char settings[12];
   // Arduino's snprintf does not support float formatting, so we
   // need to split the number up into two parts
-  float pot_size = mode_definitions[running_mode].pot_size;
+  float pot_size = mode_settings[running_mode].pot_size;
   int left_side = (int)pot_size;
   // We know that 0.1 is the maximum degree of accuracy, so we just
   // multiply by 10
@@ -302,9 +308,9 @@ void notifySettings(bool configuration_active) {
   if (configuration_active) {
     char description[17];
     char humidity[5];
-    int dry_hours = mode_definitions[running_mode].dry_hours;
+    int dry_hours = mode_settings[running_mode].dry_hours;
     // Copy string to variable in order to make it lowercase
-    strncpy(humidity, soilDataToString(mode_definitions[running_mode].humidity), 5);
+    strncpy(humidity, soilDataToString(mode_settings[running_mode].humidity), 5);
     humidity[0] = tolower(humidity[0]);
     snprintf(description, 17, "%dh after %s", dry_hours, humidity);
     lcdPrint(0, 1, 16, description);
@@ -405,6 +411,9 @@ void enterConfigureMode() {
       }
     }
   }
+  // Update EEPROM if applicable
+  EEPROM.put(RUNNING_MODE_ADDR, running_mode);
+  EEPROM.put(MODE_SETTINGS_ADDR, mode_settings);
 }
 
 void loop() {
