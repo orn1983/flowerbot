@@ -107,24 +107,23 @@ char *soilDataToString(int soil_data) {
 void updatePotSize(int change) {
   // Update the pot size for the current setting. 1 = increase, -1 = decrease
 
-  // local variable for convenience
-  float pot_size = mode_definitions[running_mode].pot_size;
+  float *pot_size = &(mode_definitions[running_mode].pot_size);
   float delta;
-  if (pot_size < 2.0)
+  if (*pot_size < 2.0)
     delta = change * 0.1;
-  else if (pot_size == 2.0) {
+  else if (*pot_size == 2.0) {
     Serial.println("Changing from 2.0");
     if (change == -1)
       delta = -0.1;
     else
       delta = 0.5;
   }
-  else if (pot_size < 5)
+  else if (*pot_size < 5)
     delta = change * 0.5;
   else
     delta = change * 1;
 
-  mode_definitions[running_mode].pot_size = constrain(pot_size + delta, 0.1, 20);
+  *pot_size = constrain(*pot_size + delta, 0.1, 20);
 }
 
 int readSoil() {
