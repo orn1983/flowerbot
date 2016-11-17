@@ -18,7 +18,7 @@
 #define HOUR 3600000
 #define BTNDELAY 300
 #define DEGREESYMBOL (char)223
-#define BACKLIGHT_TIMEOUT 10000
+#define BACKLIGHT_TIMEOUT 30000
 #define RUNNING_MODE_ADDR 0
 #define MODE_SETTINGS_ADDR 2
 
@@ -32,9 +32,9 @@ struct airData {
 };
 
 struct buttonData {
-  bool plus;
-  bool minus;
   bool mode;
+  bool minus;
+  bool plus;
 };
 
 struct modeDefinition {
@@ -44,6 +44,7 @@ struct modeDefinition {
 };
 
 // We use a global variable to represent the backlight for quicker tests
+// i.e. so we don't have to read the pins
 bool waterled_on = false;
 bool backlight_on = true;
 unsigned long backlight_expiry;
@@ -52,15 +53,13 @@ unsigned long backlight_expiry;
 int running_mode = 0;
 
 struct modeDefinition mode_settings[5] = {
-  { 1, 1, 1 },
-  { 1, 2, 10 },
-  { 1, 2, 3 },
-  { 1, 0, 3 },
-  { 1, 1, 5 },
+  { 2, 0, 6 },
+  { 2, 0, 24 },
+  { 2, 0, 1 },
+  { 2, 1, 24 },
+  { 2, 2, 72 }
 };
 
-// 3.36 from 5.085
-// the setup function runs once when you press reset or power the board
 void setup() {
   // initialize LEDs.
   pinMode(WATERLED, OUTPUT);
@@ -80,45 +79,53 @@ void setup() {
   pinMode(FLOATREAD, INPUT_PULLUP);
   // Write pump pin to low, just in case
   digitalWrite(PUMP, LOW);
-  // Serial debug output
-  Serial.begin(9600);
 
   // Print bootup message
   turnBacklightOn();
   lcd.begin(16,2);
-  lcd.print("Flowerbot v0.1");
+  //lcd.print("Flowerbot v0.1");
+  lcdPrint(0, 0, 16, "Flowerbot v0.2");
+  lcdPrint(0, 1, 16, "Starting...");
 
-  // Make sure we don't start pumping JUST as the board is plugged in.
+  // Wait to allow people to read bootup message
   delay(2000);
   lcd.clear();
-  Serial.println("Board initialized");
-//  delay(8000);
   setBacklightExpiry();
-  // Load user settings from EEPROM
-  EEPROM.get(RUNNING_MODE_ADDR, running_mode);
-  EEPROM.get(MODE_SETTINGS_ADDR, mode_settings);
+  struct buttonData bd = readButtonData();
+
+  // Skip loading from EEPROM if mode and plus are depressed while starting.
+  // This can function as a factory reset, should the user enter configuration
+  if (!bd.mode && !bd.plus) {
+    // Load user settings from EEPROM
+    EEPROM.get(RUNNING_MODE_ADDR, running_mode);
+    EEPROM.get(MODE_SETTINGS_ADDR, mode_settings);
+  }
+  else {
+    lcdPrint(0, 0, 16, "Loading defaults");
+    lcdPrint(0, 1, 16, "Config. to save");
+    delay(5000);
+  }
 }
 
-char *soilDataToString(int soil_data) {
-  if (soil_data == 0)
+char *soilDataToString(int soil_state) {
+  if (soil_state == 0)
     return "Dry";
-  else if (soil_data == 1)
+  else if (soil_state == 1)
     return "Damp";
-  else if (soil_data == 2)
+  else if (soil_state == 2)
     return "Wet";
   else
     return "????";
 }
 
 void updatePotSize(int change) {
-  // Update the pot size for the current setting. 1 = increase, -1 = decrease
-
+  // Update the pot size for the current setting. change=1 == inc, -1 == dec
   float *pot_size = &(mode_settings[running_mode].pot_size);
   float delta;
   if (*pot_size < 2.0)
     delta = change * 0.1;
-  else if (*pot_size == 2.0) {
-    Serial.println("Changing from 2.0");
+  // We can't use == 2.0 (it never yields true), so we use <2.5 instead
+  else if (*pot_size < 2.50) {
     if (change == -1)
       delta = -0.1;
     else
@@ -132,6 +139,11 @@ void updatePotSize(int change) {
   *pot_size = constrain(*pot_size + delta, 0.1, 20);
 }
 
+int litersToMilliseconds(float liters) {
+  // Rough first estimation. Needs work.
+  return (int)(liters * 2500);
+}
+
 int readSoil() {
   // Read soil moisture from the soil sensor.
   // Returns 0 for dry, 1 for damp and 2 for wet
@@ -143,8 +155,6 @@ int readSoil() {
   // Take the reading
   soil_humidity = analogRead(SOILREAD);
   // Turn it off
-  Serial.print("Soil humidity: ");
-  Serial.println(soil_humidity);
   digitalWrite(SENSORPOWER, LOW);
   if (soil_humidity >= 700)
     return 0;
@@ -173,30 +183,6 @@ struct buttonData readButtonData() {
   return buttons;
 }
 
-void printAirData(struct airData ad) {
-  // Print all information from air temperature/moisture sensor on Serial.
-  // Needs rewrite after we connect LCD
-  Serial.print("Air humidity: ");
-  Serial.print(ad.humidity);
-  Serial.print("%\t Air temperature: ");
-  Serial.print(ad.temperature);
-  Serial.print("°C\t Effective air temperature: ");
-  Serial.print(ad.eff_temperature);
-  Serial.println("°C");
-}
-
-void printSoilData(int sd) {
-  // Print soil humidity on Serial. Soil data is received by function as an integer
-  // integer values 0 = dry, 1 = moist, 2 = wet
-  Serial.print("Soil humidity: ");
-  if (sd == 0)
-    Serial.println("DRY");
-  else if (sd == 1)
-    Serial.println("DAMP");
-  else
-    Serial.println("WET");
-}
-
 bool waterIsEmpty() {
   // Returns true if float switch is open
   return (digitalRead(FLOATREAD) == HIGH);
@@ -218,14 +204,10 @@ void pumpWater(unsigned long milliseconds) {
   turnBacklightOn();
   // Give user time to abort!
   delay(2000);
-  Serial.print("Starting pump for ");
-  Serial.print(milliseconds);
-  Serial.println(" milliseconds");
   digitalWrite(PUMP, HIGH);
   blinkWaterLED(milliseconds);
   digitalWrite(PUMP, LOW);
-  Serial.println("Stopping pump");
-  clearBusy();
+  clearLCD();
   setBacklightExpiry();
 }
 
@@ -284,7 +266,7 @@ void notifyBusy(char reason[]) {
   lcd.print(reason);
 }
 
-void clearBusy() {
+void clearLCD() {
   lcd.clear();
 }
 
@@ -293,11 +275,10 @@ void notifySettings(bool configuration_active) {
   // Arduino's snprintf does not support float formatting, so we
   // need to split the number up into two parts
   float pot_size = mode_settings[running_mode].pot_size;
-  int left_side = (int)pot_size;
-  // We know that 0.1 is the maximum degree of accuracy, so we just
-  // multiply by 10
-  int right_side = (pot_size - left_side) * 10;
-
+  // Add 0.01 to deal with float inaccuracies and make sure we're always above the int
+  int left_side = (int)(pot_size+0.01);
+  // We know that 0.1 is the maximum degree of accuracy, so we just multiply by 10
+  int right_side = (int)round((pot_size - left_side) * 10);
   if (right_side == 0)
     snprintf(settings, 12, "Mode %d %2d L", running_mode + 1, left_side);
   else
@@ -419,62 +400,47 @@ void enterConfigureMode() {
 void loop() {
   // Initialize the variables we need
   static unsigned long watering_interval = HOUR;
-  static unsigned long probing_interval = 5 * MINUTE;
-  // Initialize the last_watering and last_probing variables in the past to make sure we 
-  // start out by probing and watering, if conditions dictate.
-  static unsigned long last_watering = 0 - watering_interval;
+  static unsigned long probing_interval = MINUTE;
+  // Set last_soil_state to invalid value to indicate startup
+  static int last_soil_state = 3;
+
+  // Initialize the last_watering and last_probing variables in the past to make sure 
+  // that we start out by probing and watering, should conditions dictate.
+  static unsigned long last_watering = 0 - watering_interval + (10*SECOND);;
   static unsigned long last_timer_notify = 0 - SECOND;
   static unsigned long last_waterlevel_notify = 0 - (10 * SECOND);
   static unsigned long last_probing = 0 - probing_interval;
-  static char soil_state[5];
+  // soil_state_change is the timestamp of when the soil state changed states
+  static unsigned long soil_state_change = 0 - (mode_settings[running_mode].dry_hours * HOUR) + MINUTE;
+  // Text description of soil state
+  static char soil_state_desc[5];
   static struct airData air_data;
   static struct buttonData buttons;
-  static int soil_data;
+  static int soil_state;
   static int waterEmpty = true;
 
   // Read the data
   if (timeToAct(last_probing, probing_interval)) {
-    Serial.println("Taking readings...");
     notifyBusy("Reading sensors...");
     last_probing = millis();
     air_data = readAirData();
-    soil_data = readSoil();
+    soil_state = readSoil();
+    // last_soil_state == 3 indicates a startup, so no update to make sure to water
+    // if the soil needs it, as we don't know the last time it happened.
+    if (last_soil_state != soil_state && last_soil_state != 3)
+      soil_state_change = millis();
+    last_soil_state = soil_state;
     waterEmpty = waterIsEmpty();
-    clearBusy();
-    printAirData(air_data);
-    printSoilData(soil_data);
-    if (timeToAct(last_watering, watering_interval)) {
-      if (soil_data == 0) {
-        Serial.println("Need to water. Checking supply");
-        // Check water supply again, just in case
-        waterEmpty = waterIsEmpty();
-        if (!waterEmpty) {
-          Serial.println("Supply OK to water. Turning on pump.");
-          // Turn on pump for 2 seconds. Magic number for base phase only. Will be user configurable.
-          pumpWater(4000);
-          // Update last watering time.
-          last_watering = millis();
-        }
+    clearLCD();
+    if (soil_state <= mode_settings[running_mode].humidity && timeToAct(soil_state_change, mode_settings[running_mode].dry_hours * HOUR)) {
+      if (!waterEmpty) {
+        pumpWater(litersToMilliseconds(mode_settings[running_mode].pot_size));
+        last_watering = millis();
       }
-      else if (soil_data == 1) {
-        Serial.println("Soil is damp. No need to water.");
-      }
-      else {
-        Serial.println("Soil is very wet. No need to water.");
-      }
-      strncpy(soil_state, soilDataToString(soil_data), 5);
     }
-    else {
-      // Debug output -- will be removed. Maybe add time since last watering when
-      // LCD is connected?
-      Serial.println("I watered too recently. Waiting...");
-      Serial.print("I watered at ");
-      Serial.print(last_watering);
-      Serial.print(" and it is now ");
-      Serial.println(millis());
-    }
+    strncpy(soil_state_desc, soilDataToString(soil_state), 5);
+    notifySoilState(soil_state_desc);
     notifyAirState(air_data);
-    notifySoilState(soil_state);
     notifySettings(false);
     notifyEmptyWater(waterEmpty);
   }
@@ -484,11 +450,11 @@ void loop() {
     turnBacklightOn();
     if (buttons.mode) {
       enterConfigureMode();
-      clearBusy();
+      clearLCD();
       notifySettings(false);
       notifyLastWateringTime(last_watering, millis());
       notifyAirState(air_data);
-      notifySoilState(soil_state);
+      notifySoilState(soil_state_desc);
     }
     setBacklightExpiry();
   }
