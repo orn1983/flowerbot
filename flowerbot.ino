@@ -19,6 +19,7 @@
 #define BTNDELAY 300
 #define DEGREESYMBOL (char)223
 #define BACKLIGHT_TIMEOUT 30000
+#define PROBING_INTERVAL 60000
 #define RUNNING_MODE_ADDR 0
 #define MODE_SETTINGS_ADDR 2
 
@@ -398,20 +399,17 @@ void enterConfigureMode() {
 }
 
 void loop() {
-  // Initialize the variables we need
-  static unsigned long watering_interval = HOUR;
-  static unsigned long probing_interval = MINUTE;
   // Set last_soil_state to invalid value to indicate startup
   static int last_soil_state = 3;
 
   // Initialize the last_watering and last_probing variables in the past to make sure 
   // that we start out by probing and watering, should conditions dictate.
-  static unsigned long last_watering = 0 - watering_interval + (10*SECOND);;
+  static unsigned long last_watering = 0 - (mode_settings[running_mode].dry_hours * HOUR) + (10*SECOND);
   static unsigned long last_timer_notify = 0 - SECOND;
   static unsigned long last_waterlevel_notify = 0 - (10 * SECOND);
-  static unsigned long last_probing = 0 - probing_interval;
+  static unsigned long last_probing = 0 - PROBING_INTERVAL;
   // soil_state_change is the timestamp of when the soil state changed states
-  static unsigned long soil_state_change = 0 - (mode_settings[running_mode].dry_hours * HOUR) + MINUTE;
+  static unsigned long soil_state_change = 0 - (mode_settings[running_mode].dry_hours * HOUR) + (10*SECOND);
   // Text description of soil state
   static char soil_state_desc[5];
   static struct airData air_data;
@@ -420,7 +418,7 @@ void loop() {
   static int waterEmpty = true;
 
   // Read the data
-  if (timeToAct(last_probing, probing_interval)) {
+  if (timeToAct(last_probing, PROBING_INTERVAL)) {
     notifyBusy("Reading sensors...");
     last_probing = millis();
     air_data = readAirData();
