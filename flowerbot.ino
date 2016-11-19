@@ -82,7 +82,7 @@ void setup() {
   digitalWrite(PUMP, LOW);
 
   // Print bootup message
-  turnBacklightOn();
+  setBacklightState(HIGH);
   lcd.begin(16,2);
   //lcd.print("Flowerbot v0.1");
   lcdPrint(0, 0, 16, "Flowerbot v0.2");
@@ -202,7 +202,7 @@ void pumpWater(unsigned long milliseconds) {
   // while the pump is active, to give some sort of visual confirmation of what is
   // going on.
   notifyBusy("Watering...");
-  turnBacklightOn();
+  setBacklightState(HIGH);
   // Give user time to abort!
   delay(2000);
   digitalWrite(PUMP, HIGH);
@@ -237,8 +237,9 @@ void notifyEmptyWater(bool state) {
   // state variable true to notify user, or false to remove notification
   char message[9];
   if (state == true) {
-    turnWaterLedOn();
-    turnBacklightOn();
+    setWaterLedState(HIGH);
+    setBacklightState(HIGH);
+    // This should be run often enough for the backlight never to turn off
     setBacklightExpiry();
     strncpy(message, "NO WATER", 9);
     // Write on LCD that water supply is empty
@@ -248,7 +249,7 @@ void notifyEmptyWater(bool state) {
   }
   else if (waterled_on)
   {
-    turnWaterLedOff();
+    setWaterLedState(LOW);
     setBacklightExpiry();
     notifySettings(false);
   }
@@ -340,24 +341,14 @@ bool backlightExpired() {
   return (timeToAct(backlight_expiry, BACKLIGHT_TIMEOUT));
 }
 
-void turnWaterLedOn() {
-  digitalWrite(WATERLED, HIGH);
-  waterled_on = true;
+void setWaterLedState(bool state) {
+  digitalWrite(WATERLED, state);
+  waterled_on = (state == HIGH);
 }
 
-void turnWaterLedOff() {
-  digitalWrite(WATERLED, LOW);
-  waterled_on = false;
-}
-
-void turnBacklightOn() {
-  digitalWrite(BACKLIGHT, HIGH);
-  backlight_on = true;
-}
-
-void turnBacklightOff() {
-  digitalWrite(BACKLIGHT, LOW);
-  backlight_on = false;
+void setBacklightState(bool state) {
+  digitalWrite(BACKLIGHT, state);
+  backlight_on = (state == HIGH);
 }
 
 void setBacklightExpiry() {
@@ -415,7 +406,7 @@ void loop() {
   static struct airData air_data;
   static struct buttonData buttons;
   static int soil_state;
-  static int waterEmpty = true;
+  static bool water_empty = true;
 
   // Read the data
   if (timeToAct(last_probing, PROBING_INTERVAL)) {
@@ -428,10 +419,10 @@ void loop() {
     if (last_soil_state != soil_state && last_soil_state != 3)
       soil_state_change = millis();
     last_soil_state = soil_state;
-    waterEmpty = waterIsEmpty();
+    water_empty = waterIsEmpty();
     clearLCD();
     if (soil_state <= mode_settings[running_mode].humidity && timeToAct(soil_state_change, mode_settings[running_mode].dry_hours * HOUR)) {
-      if (!waterEmpty) {
+      if (!water_empty) {
         pumpWater(litersToMilliseconds(mode_settings[running_mode].pot_size));
         last_watering = millis();
         // Special case for plants that should always be wet, as there will no state
@@ -444,12 +435,12 @@ void loop() {
     notifySoilState(soil_state_desc);
     notifyAirState(air_data);
     notifySettings(false);
-    notifyEmptyWater(waterEmpty);
+    notifyEmptyWater(water_empty);
   }
   
   buttons = readButtonData();
   if (buttons.mode || buttons.minus || buttons.plus) {
-    turnBacklightOn();
+    setBacklightState(HIGH);
     if (buttons.mode) {
       enterConfigureMode();
       clearLCD();
@@ -472,6 +463,6 @@ void loop() {
   }
 
   if (backlight_on && backlightExpired()) {
-    turnBacklightOff();
+    setBacklightState(LOW);
   }
 }
