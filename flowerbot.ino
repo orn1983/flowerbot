@@ -190,10 +190,10 @@ bool waterIsEmpty() {
 }
 
 bool timeToAct(unsigned long last_action, unsigned long interval) {
-  // Function to calculate whether or not it is time to act based on state of
-  // millisecond timers. We need this because millis() rolls over every ~50 days, and this
-  // handles that safely.
-  // Returns true if last_action+interval is in the past 
+  // Calculate whether or not it is time to act based on state of
+  // millisecond timers. We need this because millis() rolls over every 
+  // ~50 days, and this handles that safely.
+  // Returns true if last_action+interval is in the past or exact present
   return (millis() - last_action >= interval);
 }
 
@@ -273,6 +273,8 @@ void clearLCD() {
 }
 
 void notifySettings(bool configuration_active) {
+  // Print the top left side of the LCD with the active settings
+  // If configuration is active, print information in lower row
   char settings[12];
   // Arduino's snprintf does not support float formatting, so we
   // need to split the number up into two parts
@@ -314,6 +316,7 @@ void notifyLastWateringTime(unsigned long last_watering_time, unsigned long curr
 }
 
 void secondsToHHMM(unsigned long seconds, char* time) {
+  // Convert seconds to HH:MM, or D:HH:MM if longer than 24 hours
   int minutes = (seconds / 60) % 60;
   int hours = (seconds / 3600) % 24;
   int days = (seconds / 86400);
@@ -324,6 +327,8 @@ void secondsToHHMM(unsigned long seconds, char* time) {
 }
 
 void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
+  // Print text of field_length starting at col_start and row_start on LCD.
+  // If text length < field_length, we will pad with spaces to clear.
   lcd.setCursor(col_start, row_start);
   int text_length = strlen(text);
   char formatted_text [field_length+1];
@@ -335,10 +340,6 @@ void lcdPrint(int col_start, int row_start, int field_length, char text[]) {
   formatted_text[field_length] = '\0';
   lcd.setCursor(col_start, row_start);
   lcd.print(formatted_text);
-}
-
-bool backlightExpired() {
-  return (timeToAct(backlight_expiry, BACKLIGHT_TIMEOUT));
 }
 
 void setWaterLedState(bool state) {
@@ -356,6 +357,9 @@ void setBacklightExpiry() {
 }
 
 void enterConfigureMode() {
+  // Break out of main loop until configuration timer expires.
+  // This changes pot_size and running_mode. Will save changes
+  // to EEPROM upon exit.
   unsigned long last_button_read = millis();
   struct buttonData buttons;
   int configuration_timeout = 15 * SECOND;
@@ -415,18 +419,21 @@ void loop() {
     air_data = readAirData();
     soil_state = readSoil();
     // last_soil_state == 3 indicates a startup, so no update to make sure to water
-    // if the soil needs it, as we don't know the last time it happened.
+    // if the soil needs it, as we don't know the last time it happened
     if (last_soil_state != soil_state && last_soil_state != 3)
       soil_state_change = millis();
     last_soil_state = soil_state;
     water_empty = waterIsEmpty();
     clearLCD();
+    // Check if soil is below the desired humidity level. If so, check if we should
+    // water it, based on the time elapsed since soil reched that stage
     if (soil_state <= mode_settings[running_mode].humidity && timeToAct(soil_state_change, mode_settings[running_mode].dry_hours * HOUR)) {
       if (!water_empty) {
         pumpWater(litersToMilliseconds(mode_settings[running_mode].pot_size));
         last_watering = millis();
         // Special case for plants that should always be wet, as there will no state
-        // change from wet->wet
+        // change from wet->wet, so we need to pretend that there was due to how we
+        // check if it's time to water
         if (mode_settings[running_mode].humidity == 2 && soil_state == 2)
           soil_state_change = last_watering;
       }
@@ -452,17 +459,20 @@ void loop() {
     setBacklightExpiry();
   }
 
+  // Check if it's time to update time elapsed since last watering
   if (timeToAct(last_timer_notify, SECOND)) {
     notifyLastWateringTime(last_watering, millis());
     last_timer_notify = millis();
   }
 
+  // Check if it's time to check and notify water level state
   if (timeToAct(last_waterlevel_notify, 5*SECOND)) {
     notifyEmptyWater(waterIsEmpty());
     last_waterlevel_notify = millis();
   }
 
-  if (backlight_on && backlightExpired()) {
+  // Check if backlight is on and should be turned off
+  if (backlight_on && timeToAct(backlight_expiry, BACKLIGHT_TIMEOUT)) {
     setBacklightState(LOW);
   }
 }
