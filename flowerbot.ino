@@ -434,6 +434,10 @@ void loop() {
       if (!waterEmpty) {
         pumpWater(litersToMilliseconds(mode_settings[running_mode].pot_size));
         last_watering = millis();
+        // Special case for plants that should always be wet, as there will no state
+        // change from wet->wet
+        if (mode_settings[running_mode].humidity == 2 && soil_state == 2)
+          soil_state_change = last_watering;
       }
     }
     strncpy(soil_state_desc, soilDataToString(soil_state), 5);
