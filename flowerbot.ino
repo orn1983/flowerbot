@@ -276,12 +276,14 @@ void notifySettings(bool configuration_active) {
   // Print the top left side of the LCD with the active settings
   // If configuration is active, print information in lower row
   char settings[12];
-  // Arduino's snprintf does not support float formatting, so we
+  // Arduino's printf does not support float formatting, so we
   // need to split the number up into two parts
   float pot_size = mode_settings[running_mode].pot_size;
-  // Add 0.01 to deal with float inaccuracies and make sure we're always above the int
+  // Add 0.01 to deal with float inaccuracies and make sure we're always above 
+  // the int (i.e. not below) as we're getting the left hand side of the interval
   int left_side = (int)(pot_size+0.01);
-  // We know that 0.1 is the maximum degree of accuracy, so we just multiply by 10
+  // 0.1 is the maximum degree of accuracy, so we just multiply by 10
+  // We can round here insted of adding since we've multiplied
   int right_side = (int)round((pot_size - left_side) * 10);
   if (right_side == 0)
     snprintf(settings, 12, "Mode %d %2d L", running_mode + 1, left_side);
